@@ -74,7 +74,10 @@ class HetControlMlpEmpirical(Model):
             else None
         )  # Components that maps std_dev according to scale_mapping
 
-        self.input_features = self.input_leaf_spec.shape[-1]
+        # self.input_features = self.input_leaf_spec.shape[-1]
+        self.input_features = sum(
+            [spec.shape[-1] for spec in self.input_spec.values(True, True)]
+        )
         self.output_features = self.output_leaf_spec.shape[-1]
 
         self.shared_mlp = MultiAgentMLP(
@@ -132,9 +135,12 @@ class HetControlMlpEmpirical(Model):
     ) -> TensorDictBase:
         # Gather in_key
 
-        input = tensordict.get(
-            self.in_key
-        )  # Observation tensor of shape [*batch, n_agents, n_features]
+        # input = tensordict.get(
+        #     self.in_key
+        # ) 
+        input = torch.cat([tensordict.get(in_key) for in_key in self.in_keys], dim=-1) 
+        
+        # Observation tensor of shape [*batch, n_agents, n_features]
         shared_out = self.shared_mlp.forward(input)
         if agent_index is None:  # Gather outputs for all agents on the obs
             # tensor of shape [*batch, n_agents, n_actions], where the outputs
@@ -143,7 +149,9 @@ class HetControlMlpEmpirical(Model):
         else:  # Gather outputs for one agent on the obs
             # tensor of shape [*batch, n_agents, n_actions], where the outputs
             # along the n_agent dimension are taken with the same (agent_index) agent network
-            agent_out = self.agent_mlps.agent_networks[agent_index].forward(input)
+            # agent_out = self.agent_mlps.agent_networks[agent_index].forward(input)
+            with self.agent_mlps.params[agent_index].to_module(self.agent_mlps._empty_net):
+                agent_out  = self.agent_mlps._empty_net(input)
 
         shared_out = self.process_shared_out(shared_out)
 
@@ -166,6 +174,9 @@ class HetControlMlpEmpirical(Model):
             or distance.isnan().any()  # It is the first iteration
             or self.n_agents == 1
         ):
+            distance = self.estimate_snd(input)
+            if update_estimate:
+                self.estimated_snd[:] = distance.detach()
             scaling_ratio = 1.0
         else:  # DiCo scaling
             scaling_ratio = torch.where(
@@ -237,9 +248,14 @@ class HetControlMlpEmpirical(Model):
         """
         agent_actions = []
         # Gather what actions each agent would take if given the obs tensor
-        for agent_net in self.agent_mlps.agent_networks:
-            agent_outputs = agent_net(obs)
-            agent_actions.append(agent_outputs)
+        # for agent_net in self.agent_mlps.agent_networks:
+        #     agent_outputs = agent_net(obs)
+        #     agent_actions.append(agent_outputs)
+        for agent_index in range(self.n_agents): 
+            with self.agent_mlps.params[agent_index].to_module(self.agent_mlps._empty_net):
+                agent_out  = self.agent_mlps._empty_net(obs)
+                agent_actions.append(agent_out)
+
 
         distance = (
             compute_behavioral_distance(agent_actions=agent_actions, just_mean=True)

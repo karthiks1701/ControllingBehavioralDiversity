@@ -6,11 +6,17 @@ defaults:
 sampling_device: "cuda"
 # The device for training (e.g. cuda)
 train_device: "cuda"
+# new BenchMaRL requirements
+buffer_device: "cpu"
 
 # Whether to share the parameters of the policy within agent groups
 share_policy_params: True # This won't matter as our model ignores it
 # If an algorithm and an env support both continuous and discrete actions, what should be preferred
 prefer_continuous_actions: True
+# new BenchMaRL requirements
+collect_with_grad: False
+# new BenchMaRL requirements
+parallel_collection: False
 
 # Discount factor
 gamma: 0.9
@@ -69,6 +75,14 @@ off_policy_train_batch_size: 128
 off_policy_memory_size: 1_000_000
 # Number of random action frames to prefill the replay buffer with
 off_policy_init_random_frames: 0
+# new BenchMaRL requirements
+# whether to use priorities while sampling from the replay buffer
+off_policy_use_prioritized_replay_buffer: False
+# exponent that determines how much prioritization is used when off_policy_use_prioritized_replay_buffer = True
+# PRB reduces to random sampling when alpha=0
+off_policy_prb_alpha: 0.6
+# importance sampling negative exponent when off_policy_use_prioritized_replay_buffer = True
+off_policy_prb_beta: 0.4
 
 evaluation: True
 # Whether to render the evaluation (if rendering is available
@@ -79,6 +93,9 @@ evaluation_interval: 120_000
 evaluation_episodes: 200
 # If True, when stochastic policies are evaluated, their mode is taken, otherwise, if False, they are sampled
 evaluation_deterministic_actions: False
+# If True, seed the environment before evaluation leading to always the same evaluation env being used
+# If False, evaluation environments will be more random throughout training
+evaluation_static: False
 
 # Absolute path to the folder where the experiment will log.
 # If null, this will default to the hydra output dir (if using hydra) or to the current folder when the script is run (if not).
@@ -91,9 +108,12 @@ checkpoint_interval: 0
 
 # List of loggers to use, options are: wandb, csv, tensorboard, mflow
 loggers: [wandb]
+restore_map_location: null
+project_name: "benchmarl"
 # Create a json folder as part of the output in the format of marl-eval
 create_json: True
-
+checkpoint_at_end: False
+keep_checkpoints_num: 3
 
 
 

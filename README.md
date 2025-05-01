@@ -22,17 +22,7 @@ Watch the presentation video of DiCo.
 git clone -b het_control https://github.com/proroklab/VectorizedMultiAgentSimulator.git
 pip install -e VectorizedMultiAgentSimulator
 
-git clone -b het_control https://github.com/matteobettini/tensordict.git
-cd tensordict
-python setup.py develop
-cd ..
-
-git clone -b het_control https://github.com/matteobettini/rl.git
-cd rl
-python setup.py develop
-cd ..
-
-git clone -b het_control https://github.com/matteobettini/BenchMARL.git
+git clone https://github.com/matteobettini/BenchMARL.git
 pip install -e BenchMARL
 ```
 3. Install optional dependencies for logging
@@ -45,6 +35,10 @@ git clone https://github.com/proroklab/ControllingBehavioralDiversity.git
 pip install -e ControllingBehavioralDiversity
 ```
 5. Try running a script (it will ask for cuda and wandb, you can change these values in `ControllingBehavioralDiversity/het_control/conf/experiment/het_control_experiment.yaml`)
+
+6. Need to install Matplotlib
+
+
 ```
 python ControllingBehavioralDiversity/het_control/run_scripts/run_navigation_ippo.py model.desired_snd=0.1
 ```
